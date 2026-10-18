@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TabNutri - Tabela Nutricional Para Fácil Visualização</title>
+<style>
+  :root {
+    --papel: #ffffff;
+    --fundo: #f1f3ee;
+    --tinta: #161a17;
+    --suave: #5c645e;
+    --linha: #c9cec8;
+    --verde: #2b6a4a;
+    --verde-claro: #e3efe8;
+    --erro: #a4301f;
+    --fonte: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--fonte);
+    background: var(--fundo);
+    color: var(--tinta);
+    line-height: 1.45;
+  }
+  header { background: var(--papel); border-bottom: 10px solid var(--tinta); padding: 18px 20px 0; }
+  .topo { max-width: 760px; margin: 0 auto; }
+  header h1 { margin: 0; font-size: 2.4rem; line-height: 1; letter-spacing: -0.5px; }
+  header p { margin: 4px 0 14px; color: var(--suave); }
+  nav { display: flex; gap: 4px; flex-wrap: wrap; }
+  nav button {
+    font: inherit; font-size: 1rem;
+    padding: 9px 20px;
+    background: var(--fundo);
+    border: 2px solid var(--linha); border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer; color: var(--tinta);
+  }
+  nav button[aria-selected="true"] {
+    background: var(--tinta); color: #fff; border-color: var(--tinta);
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 22px 20px 60px; }
+  section[hidden], .oculto { display: none; }
+  h2 { margin: 0 0 14px; font-size: 1.5rem; }
+  h3 { margin: 0 0 8px; }
+  label { display: block; margin: 12px 0 4px; font-weight: bold; }
+  input, select, textarea {
+    width: 100%; font: inherit; padding: 8px 10px;
+    border: 2px solid var(--linha); border-radius: 6px;
+    background: #fff; color: var(--tinta);
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--verde); }
+  textarea { min-height: 110px; resize: vertical; }
+  .linha { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+  .linha > div { flex: 1 1 140px; }
+  .grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+  button { font: inherit; }
+  .botao {
+    padding: 9px 18px; border: 2px solid var(--verde); border-radius: 6px;
+    background: var(--verde); color: #fff; cursor: pointer;
+  }
+  .botao:hover { background: var(--verde-claro); color: var(--verde); }
+  .botao.sec { background: transparent; color: var(--verde); }
+  .botao.sec:hover { background: var(--verde-claro); }
+  .botao.perigo { border-color: var(--erro); color: var(--erro); background: transparent; }
+  .botao.perigo:hover { background: #f8e6e2; }
+  .mini { padding: 4px 10px; font-size: .9rem; }
+  button:focus-visible { outline: 3px solid var(--verde); outline-offset: 2px; }
+  .acoes { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .aviso { min-height: 1.4em; margin: 10px 0 0; color: var(--verde); }
+  .aviso.erro { color: var(--erro); }
+  .nota { color: var(--suave); font-size: .92rem; }
+
+  .painel { background: var(--papel); border: 2px solid var(--tinta); padding: 16px; margin-bottom: 18px; }
+
+  /* Tabela no estilo de rótulo nutricional */
+  .rotulo { background: var(--papel); border: 2px solid var(--tinta); padding: 10px 14px 6px; margin: 16px 0; }
+  .rotulo .titulo { font-size: 1.7rem; font-weight: bold; border-bottom: 8px solid var(--tinta); margin: 0 0 2px; padding-bottom: 2px; }
+  .rotulo .sub { margin: 0; padding: 4px 0; border-bottom: 1px solid var(--tinta); color: var(--suave); }
+  .rotulo .cal { display: flex; justify-content: space-between; align-items: baseline;
+    border-bottom: 5px solid var(--tinta); padding: 4px 0; font-weight: bold; font-size: 1.3rem; }
+  .rotulo .cal b { font-size: 2rem; }
+  .rotulo .item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--linha); }
+  .rotulo .item:last-child { border-bottom: none; }
+  .rotulo .item b { font-weight: bold; }
+
+  ul.lista { list-style: none; margin: 0; padding: 0; }
+  ul.lista li {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 9px 0; border-bottom: 1px solid var(--linha);
+  }
+  ul.lista li:last-child { border-bottom: none; }
+  .vazio { color: var(--suave); padding: 8px 0; }
+  .detalhe { color: var(--suave); font-size: .9rem; margin-top: 2px; }
+  .detalhe.sub-titulo { margin-top: 6px; font-weight: bold; color: var(--tinta); }
+
+  table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+  th, td { text-align: right; padding: 6px 6px; border-bottom: 1px solid var(--linha); }
+  th:first-child, td:first-child { text-align: left; }
+  th { border-bottom: 2px solid var(--tinta); }
+  .rolagem { overflow-x: auto; }
+
+  .ingrediente { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+  .ingrediente select { flex: 3; }
+  .ingrediente input { flex: 1; min-width: 80px; }
+
+  /* modo em rede */
+  [hidden] { display: none !important; }
+  .ferramentas { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 0 0 12px; }
+  .ferramentas .usuario { color: var(--suave); margin-right: auto; }
+  .selo { display: inline-block; border: 2px solid var(--tinta); border-radius: 999px; padding: 0 10px;
+    font-size: .8rem; font-weight: bold; margin-right: 6px; }
+  .selo.pub { background: var(--verde); border-color: var(--verde); color: #fff; }
+  .selo.imp { border-color: var(--erro); color: var(--erro); }
+  fieldset { border: 2px solid var(--linha); border-radius: 6px; margin: 14px 0 0; padding: 8px 12px; }
+  legend { font-weight: bold; padding: 0 6px; }
+  .opcao { display: flex; gap: 8px; align-items: flex-start; font-weight: normal; margin: 6px 0; }
+  .opcao input { width: auto; margin-top: 4px; }
+  .opcao b { display: block; }
+  .login { max-width: 420px; }
+
+  /* celular (Android) */
+  @media (max-width: 480px) {
+    header { padding: 12px 14px 0; border-bottom-width: 6px; }
+    header h1 { font-size: 1.8rem; }
+    header p { margin: 2px 0 8px; font-size: .85rem; }
+    .ferramentas { margin-bottom: 8px; gap: 6px; }
+    nav { flex-wrap: nowrap; gap: 2px; }
+    nav button { flex: 1 1 0; padding: 8px 2px; font-size: .78rem; line-height: 1.15; border-radius: 6px 6px 0 0; }
+    main { padding: 14px 14px 40px; }
+    h2 { font-size: 1.25rem; margin-bottom: 10px; }
+    .painel { padding: 12px; margin-bottom: 12px; }
+    .rotulo { margin: 12px 0; padding: 8px 12px 4px; }
+    .rotulo .titulo { font-size: 1.35rem; }
+    .rotulo .cal b { font-size: 1.6rem; }
+    .acoes .botao { flex: 1 1 auto; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="topo">
+    <h1>TabNutri</h1>
+    <p>Tabela Nutricional Para Fácil Visualização</p>
+    <div class="ferramentas" id="ferramentas" hidden>
+      <span class="usuario" id="usuario"></span>
+      <button class="botao sec mini" id="estado" title="Clique para simular a perda ou a volta da conexão"></button>
+      <button class="botao sec mini" id="sair">Sair</button>
+    </div>
+    <nav role="tablist" aria-label="Guias" id="abas" hidden>
+      <button role="tab" data-guia="consumo" aria-selected="true">Consumo</button>
+      <button role="tab" data-guia="receitas" aria-selected="false">Minhas receitas</button>
+      <button role="tab" data-guia="explorar" aria-selected="false">Explorar</button>
+      <button role="tab" data-guia="alimentos" aria-selected="false">Alimentos</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <p class="aviso" id="g-aviso" role="status"></p>
+
+  <!-- LOGIN -->
+  <section id="login" hidden>
+    <div class="painel login">
+      <h2>Entrar no TabNutri</h2>
+      <p class="nota">Guarde suas receitas na conta, escolha quais compartilhar e importe as de outras pessoas.</p>
+      <label for="l-email">E-mail</label>
+      <input id="l-email" type="text" inputmode="email" autocomplete="email">
+      <label for="l-senha">Senha</label>
+      <input id="l-senha" type="password" autocomplete="current-password">
+      <div class="acoes">
+        <button class="botao" id="l-entrar">Entrar</button>
+        <button class="botao sec" id="l-criar">Criar conta</button>
+      </div>
+      <p class="aviso" id="l-aviso" role="status"></p>
+      <p class="nota">Protótipo: qualquer e-mail e senha funcionam, e nada é enviado para a internet.</p>
+    </div>
+  </section>
+
+  <!-- CONSUMO -->
+  <section id="consumo">
+    <h2>O que você consumiu</h2>
+    <div class="painel">
+      <label for="data">Dia</label>
+      <input id="data" type="date">
+      <div class="linha">
+        <div style="flex:3 1 200px">
+          <label for="c-alimento">Alimento</label>
+          <select id="c-alimento"></select>
+        </div>
+        <div>
+          <label for="c-gramas" id="c-qtd-rotulo">Quantidade (g)</label>
+          <input id="c-gramas" type="text" inputmode="decimal" placeholder="Ex.: 150">
+        </div>
+        <div style="flex:0 0 auto">
+          <button class="botao" id="c-add">Adicionar</button>
+        </div>
+      </div>
+      <p class="aviso" id="c-aviso" role="status"></p>
+    </div>
+
+    <div id="c-rotulo"></div>
+
+    <div class="painel">
+      <h3>Itens do dia</h3>
+      <ul class="lista" id="c-itens"></ul>
+    </div>
+
+    <div class="acoes">
+      <button class="botao sec" data-ir="receitas">Ver receitas</button>
+      <button class="botao sec" data-ir="alimentos">Cadastrar alimento</button>
+    </div>
+  </section>
+
+  <!-- RECEITAS -->
+  <section id="receitas" hidden>
+    <h2>Minhas receitas</h2>
+
+    <div id="r-lista-area">
+      <div class="painel">
+        <ul class="lista" id="r-lista"></ul>
+      </div>
+      <div class="acoes">
+        <button class="botao" id="r-nova">Nova receita</button>
+        <button class="botao sec" data-ir="consumo">Voltar ao Consumo</button>
+      </div>
+    </div>
+
+    <div id="r-ver-area" class="oculto">
+      <div class="painel">
+        <h3 id="v-nome"></h3>
+        <p class="nota" id="v-porcoes"></p>
+        <h3>Ingredientes</h3>
+        <ul class="lista" id="v-ingredientes"></ul>
+        <h3 style="margin-top:14px">Modo de preparo</h3>
+        <p id="v-modo" style="white-space:pre-wrap"></p>
+      </div>
+      <div id="v-rotulo"></div>
+      <div class="acoes">
+        <button class="botao" id="v-consumir">Adicionar 1 porção ao consumo</button>
+        <button class="botao sec" id="v-vis">Tornar pública</button>
+        <button class="botao sec" id="v-voltar">Voltar às receitas</button>
+        <button class="botao perigo" id="v-excluir">Excluir receita</button>
+      </div>
+      <p class="aviso" id="v-aviso" role="status"></p>
+    </div>
+
+    <div id="r-form-area" class="oculto">
+      <div class="painel">
+        <h3>Nova receita</h3>
+        <label for="n-nome">Nome da receita</label>
+        <input id="n-nome" type="text" placeholder="Ex.: Arroz com feijão">
+        <label for="n-porcoes">Quantas porções ela rende?</label>
+        <input id="n-porcoes" type="text" inputmode="numeric" value="1">
+        <label>Ingredientes</label>
+        <div id="n-ingredientes"></div>
+        <div class="acoes" style="margin-top:10px">
+          <button class="botao sec mini" id="n-add-ing">Adicionar ingrediente</button>
+        </div>
+        <label for="n-modo">Modo de preparo</label>
+        <textarea id="n-modo" placeholder="Escreva o passo a passo"></textarea>
+        <fieldset>
+          <legend>Quem pode ver esta receita?</legend>
+          <label class="opcao"><input type="radio" name="n-vis" value="privada" checked><span><b>Privada</b>Só você vê.</span></label>
+          <label class="opcao"><input type="radio" name="n-vis" value="publica"><span><b>Pública</b>Aparece em Explorar e outras pessoas podem importar.</span></label>
+        </fieldset>
+        <p class="nota">Só entram na conta os ingredientes cadastrados em Alimentos.</p>
+        <div class="acoes">
+          <button class="botao" id="n-salvar">Salvar receita</button>
+          <button class="botao sec" id="n-cancelar">Cancelar</button>
+        </div>
+        <p class="aviso" id="n-aviso" role="status"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXPLORAR -->
+  <section id="explorar" hidden>
+    <h2>Explorar receitas</h2>
+    <p class="nota">Receitas que outras pessoas escolheram compartilhar. Ao importar, você recebe uma cópia sua, que pode usar no Consumo.</p>
+
+    <div id="e-lista-area">
+      <div class="painel">
+        <label for="e-busca">Buscar</label>
+        <input id="e-busca" type="text" placeholder="Nome da receita ou @autor">
+        <ul class="lista" id="e-lista" style="margin-top:10px"></ul>
+      </div>
+    </div>
+
+    <div id="e-ver-area" class="oculto">
+      <div class="painel">
+        <h3 id="e-nome"></h3>
+        <p class="nota" id="e-info"></p>
+        <h3>Ingredientes</h3>
+        <ul class="lista" id="e-ingredientes"></ul>
+        <h3 style="margin-top:14px">Modo de preparo</h3>
+        <p id="e-modo" style="white-space:pre-wrap"></p>
+      </div>
+      <div id="e-rotulo"></div>
+      <div class="acoes">
+        <button class="botao" id="e-importar">Importar para minhas receitas</button>
+        <button class="botao sec" id="e-voltar">Voltar</button>
+      </div>
+      <p class="aviso" id="e-aviso" role="status"></p>
+    </div>
+  </section>
+
+  <!-- ALIMENTOS -->
+  <section id="alimentos" hidden>
+    <h2>Alimentos</h2>
+    <div class="painel">
+      <h3>Cadastrar alimento</h3>
+      <p class="nota">Informe os valores para cada 100 g, como aparecem na embalagem.</p>
+      <label for="a-nome">Nome</label>
+      <input id="a-nome" type="text" placeholder="Ex.: Iogurte natural">
+      <div class="grade">
+        <div><label for="a-kcal">Calorias (kcal)</label><input id="a-kcal" type="text" inputmode="decimal"></div>
+        <div><label for="a-c">Carboidratos (g)</label><input id="a-c" type="text" inputmode="decimal"></div>
+        <div><label for="a-p">Proteínas (g)</label><input id="a-p" type="text" inputmode="decimal"></div>
+        <div><label for="a-g">Gorduras (g)</label><input id="a-g" type="text" inputmode="decimal"></div>
+        <div><label for="a-f">Fibras (g)</label><input id="a-f" type="text" inputmode="decimal"></div>
+      </div>
+      <div class="acoes">
+        <button class="botao" id="a-salvar">Salvar alimento</button>
+      </div>
+      <p class="aviso" id="a-aviso" role="status"></p>
+    </div>
+
+    <div class="painel">
+      <h3>Alimentos cadastrados (por 100 g)</h3>
+      <p class="nota">Os valores iniciais são aproximados. Confira com a embalagem ou com uma tabela oficial.</p>
+      <div class="rolagem">
+        <table>
+          <thead>
+            <tr><th>Alimento</th><th>kcal</th><th>Carb.</th><th>Prot.</th><th>Gord.</th><th>Fibras</th><th></th></tr>
+          </thead>
+          <tbody id="a-tabela"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="acoes">
+      <button class="botao sec" data-ir="consumo">Voltar ao Consumo</button>
+      <button class="botao sec" data-ir="receitas">Ir para Receitas</button>
+    </div>
+  </section>
+
+  <p class="nota">Protótipo de layout: o servidor e as receitas de outras pessoas são simulados neste arquivo.</p>
+
+</main>
+
+<script>
+(function () {
+  /* ---------- utilidades ---------- */
+  var $ = function (s) { return document.querySelector(s); };
+  function load(k, def) {
+    try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; }
+  }
+  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function num(v) { var n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? 0 : n; }
+  function fmt(n) { return n.toLocaleString('pt-BR', { maximumFractionDigits: 1 }); }
+  function el(tag, texto, cls) {
+    var e = document.createElement(tag);
+    if (texto !== undefined) e.textContent = texto;
+    if (cls) e.className = cls;
+    return e;
+  }
+  function limpar(n) { while (n.firstChild) n.removeChild(n.firstChild); }
+  function aviso(id, msg, erro) {
+    var a = $(id); a.textContent = msg; a.className = 'aviso' + (erro ? ' erro' : '');
+    if (msg) setTimeout(function () { if (a.textContent === msg) a.textContent = ''; }, 3000);
+  }
+  function hoje() {
+    var d = new Date();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var dia = String(d.getDate()).padStart(2, '0');
+    return d.getFullYear() + '-' + m + '-' + dia;
+  }
+
+  var NUT = [
+    ['c', 'Carboidratos', 'g'],
+    ['p', 'Proteínas', 'g'],
+    ['g', 'Gorduras', 'g'],
+    ['f', 'Fibras', 'g']
+  ];
+
+  /* ---------- dados ---------- */
+  var SEMENTE = [
+    ['Arroz branco cozido', 128, 28.1, 2.5, 0.2, 1.6],
+    ['Feijão carioca cozido', 76, 13.6, 4.8, 0.5, 8.5],
+    ['Peito de frango grelhado', 159, 0, 32, 2.5, 0],
+    ['Ovo cozido', 146, 0.6, 13.3, 9.5, 0],
+    ['Banana prata', 98, 26, 1.3, 0.1, 2],
+    ['Maçã', 56, 15.2, 0.3, 0, 1.3],
+    ['Pão francês', 300, 58.6, 8, 3.1, 2.3],
+    ['Leite integral', 61, 4.5, 3.2, 3.3, 0],
+    ['Batata cozida', 52, 11.9, 1.2, 0, 1.3],
+    ['Aveia em flocos', 394, 66.6, 13.9, 8.5, 9.1],
+    ['Azeite de oliva', 884, 0, 0, 100, 0],
+    ['Alface', 11, 1.7, 1.3, 0.2, 1.8]
+  ];
+  var contador = 0;
+  function nid() { contador++; return Date.now() + '-' + contador; }
+
+  var alimentos = load('tn-alimentos', null);
+  if (!alimentos) {
+    alimentos = SEMENTE.map(function (s) {
+      return { id: nid(), nome: s[0], kcal: s[1], c: s[2], p: s[3], g: s[4], f: s[5] };
+    });
+    save('tn-alimentos', alimentos);
+  }
+  var consumo = load('tn-consumo', {});   // { 'AAAA-MM-DD': [itens] }
+  var receitas = load('tn-receitas', []);
+  var receitaAberta = null;
+
+  /* modo em rede (simulado) */
+  var usuario = load('tn-usuario', null);
+  var online = true;
+  var pendentes = load('tn-pendentes', 0);
+  var explorada = null;
+
+  function dadosSemente(nome) {
+    var s = SEMENTE.filter(function (x) { return x[0] === nome; })[0];
+    return { kcal: s[1], c: s[2], p: s[3], g: s[4], f: s[5] };
+  }
+  function srv(id, autor, nome, porcoes, lista, modo) {
+    return {
+      id: id, autor: autor, nome: nome, porcoes: porcoes, modo: modo,
+      ingredientes: lista.map(function (i) { return { nome: i[0], gramas: i[1], per100: dadosSemente(i[0]) }; })
+    };
+  }
+  var SERVIDOR = [
+    srv('s1', '@maria', 'Frango grelhado com salada', 2,
+      [['Peito de frango grelhado', 300], ['Alface', 80], ['Azeite de oliva', 10]],
+      'Grelhe o frango por 6 minutos de cada lado. Sirva sobre a alface com um fio de azeite.'),
+    srv('s2', '@joao', 'Panqueca de banana', 3,
+      [['Banana prata', 200], ['Ovo cozido', 100], ['Aveia em flocos', 60], ['Leite integral', 100]],
+      'Amasse tudo, misture e doure colheradas da massa em frigideira antiaderente.'),
+    srv('s3', '@ana', 'Arroz com feijão e ovo', 2,
+      [['Arroz branco cozido', 300], ['Feijão carioca cozido', 200], ['Ovo cozido', 100], ['Azeite de oliva', 8]],
+      'Monte o prato com o arroz e o feijão quentes e finalize com o ovo cortado.'),
+    srv('s4', '@pedro', 'Purê de batata', 3,
+      [['Batata cozida', 400], ['Leite integral', 100], ['Azeite de oliva', 10]],
+      'Amasse a batata ainda quente e misture o leite e o azeite até ficar cremoso.')
+  ];
+
+  function porGramas(per100, gramas) {
+    var k = gramas / 100;
+    return { kcal: per100.kcal * k, c: per100.c * k, p: per100.p * k, g: per100.g * k, f: per100.f * k };
+  }
+  function somar(lista) {
+    var t = { kcal: 0, c: 0, p: 0, g: 0, f: 0 };
+    lista.forEach(function (i) { t.kcal += i.kcal; t.c += i.c; t.p += i.p; t.g += i.g; t.f += i.f; });
+    return t;
+  }
+
+  /* ---------- rótulo nutricional ---------- */
+  function rotulo(total, titulo, sub) {
+    var r = el('div', undefined, 'rotulo');
+    r.appendChild(el('p', titulo, 'titulo'));
+    r.appendChild(el('p', sub, 'sub'));
+    var cal = el('div', undefined, 'cal');
+    cal.appendChild(el('span', 'Calorias'));
+    cal.appendChild(el('b', fmt(total.kcal) + ' kcal'));
+    r.appendChild(cal);
+    NUT.forEach(function (n) {
+      var linha = el('div', undefined, 'item');
+      linha.appendChild(el('span', n[1]));
+      linha.appendChild(el('b', fmt(total[n[0]]) + ' ' + n[2]));
+      r.appendChild(linha);
+    });
+    return r;
+  }
+
+  /* ---------- guias ---------- */
+  var abas = document.querySelectorAll('nav [data-guia]');
+  var secoes = document.querySelectorAll('main > section');
+  function mostrar(id) {
+    secoes.forEach(function (s) { s.hidden = (s.id !== id); });
+    abas.forEach(function (a) { a.setAttribute('aria-selected', a.dataset.guia === id ? 'true' : 'false'); });
+    if (id === 'receitas') mostrarListaReceitas();
+    if (id === 'explorar') mostrarExplorar();
+    window.scrollTo(0, 0);
+  }
+  abas.forEach(function (a) { a.addEventListener('click', function () { mostrar(a.dataset.guia); }); });
+  document.querySelectorAll('[data-ir]').forEach(function (b) {
+    b.addEventListener('click', function () { mostrar(b.dataset.ir); });
+  });
+
+  /* ---------- consumo ---------- */
+  $('#data').value = hoje();
+
+  function preencherSelect(sel) {
+    limpar(sel);
+    alimentos.forEach(function (a) {
+      var o = el('option', a.nome); o.value = a.id; sel.appendChild(o);
+    });
+  }
+
+  function atualizarQtd() {
+    var rec = $('#c-alimento').value.indexOf('r:') === 0;
+    $('#c-qtd-rotulo').textContent = rec ? 'Porções' : 'Quantidade (g)';
+    $('#c-gramas').placeholder = rec ? 'Ex.: 1' : 'Ex.: 150';
+  }
+
+  function preencherConsumo() {
+    var sel = $('#c-alimento');
+    var atual = sel.value;
+    limpar(sel);
+    var ga = document.createElement('optgroup'); ga.label = 'Alimentos';
+    alimentos.forEach(function (a) {
+      var o = el('option', a.nome); o.value = 'a:' + a.id; ga.appendChild(o);
+    });
+    sel.appendChild(ga);
+    if (receitas.length) {
+      var gr = document.createElement('optgroup'); gr.label = 'Receitas';
+      receitas.forEach(function (r) {
+        var o = el('option', r.nome); o.value = 'r:' + r.id; gr.appendChild(o);
+      });
+      sel.appendChild(gr);
+    }
+    if (atual) sel.value = atual;
+    if (!sel.value && sel.options.length) sel.selectedIndex = 0;
+    atualizarQtd();
+  }
+  $('#c-alimento').addEventListener('change', atualizarQtd);
+
+  function desenharConsumo() {
+    var dia = $('#data').value || hoje();
+    var itens = consumo[dia] || [];
+    var area = $('#c-rotulo'); limpar(area);
+    var d = dia.split('-');
+    area.appendChild(rotulo(somar(itens), 'Informação nutricional',
+      'Total consumido em ' + d[2] + '/' + d[1] + '/' + d[0]));
+    var ul = $('#c-itens'); limpar(ul);
+    if (!itens.length) { ul.appendChild(el('li', 'Nenhum item neste dia. Adicione um alimento acima.', 'vazio')); return; }
+    itens.forEach(function (it, idx) {
+      var li = el('li');
+      var txt = el('div');
+      txt.appendChild(el('strong', it.nome + ' (' + it.desc + ')'));
+      txt.appendChild(el('div',
+        fmt(it.kcal) + ' kcal  |  Carboidratos: ' + fmt(it.c) + ' g  |  Proteínas: ' + fmt(it.p) +
+        ' g  |  Gorduras: ' + fmt(it.g) + ' g  |  Fibras: ' + fmt(it.f) + ' g', 'detalhe'));
+      if (it.ingredientes && it.ingredientes.length) {
+        txt.appendChild(el('div', 'Alimentos nesta porção:', 'detalhe sub-titulo'));
+        it.ingredientes.forEach(function (ing) {
+          txt.appendChild(el('div',
+            '• ' + ing.nome + ' — ' + fmt(ing.gramas) + ' g  |  ' + fmt(ing.kcal) + ' kcal  |  Carb. ' +
+            fmt(ing.c) + ' g  |  Prot. ' + fmt(ing.p) + ' g  |  Gord. ' + fmt(ing.g) +
+            ' g  |  Fibras ' + fmt(ing.f) + ' g', 'detalhe'));
+        });
+      }
+      var b = el('button', 'Remover', 'botao perigo mini');
+      b.addEventListener('click', function () {
+        itens.splice(idx, 1); consumo[dia] = itens; save('tn-consumo', consumo); desenharConsumo();
+      });
+      li.appendChild(txt); li.appendChild(b); ul.appendChild(li);
+    });
+  }
+
+  $('#data').addEventListener('change', desenharConsumo);
+
+  $('#c-add').addEventListener('click', function () {
+    var val = $('#c-alimento').value;
+    var g = num($('#c-gramas').value);
+    var dia = $('#data').value || hoje();
+    var v;
+    if (val.indexOf('r:') === 0) {
+      var r = receitas.filter(function (x) { return x.id === val.slice(2); })[0];
+      if (!r) { aviso('#c-aviso', 'Receita não encontrada.', true); return; }
+      if (g <= 0) { aviso('#c-aviso', 'Informe quantas porções você comeu.', true); return; }
+      var tot = totalReceita(r);
+      v = {};
+      Object.keys(tot).forEach(function (k) { v[k] = tot[k] / r.porcoes * g; });
+      v.nome = r.nome; v.desc = fmt(g) + (g === 1 ? ' porção' : ' porções');
+      v.ingredientes = ingredientesDaPorcao(r, g);
+    } else {
+      var alimento = alimentos.filter(function (a) { return a.id === val.slice(2); })[0];
+      if (!alimento) { aviso('#c-aviso', 'Cadastre um alimento primeiro.', true); return; }
+      if (g <= 0) { aviso('#c-aviso', 'Informe a quantidade em gramas.', true); return; }
+      v = porGramas(alimento, g);
+      v.nome = alimento.nome; v.desc = fmt(g) + ' g';
+    }
+    (consumo[dia] = consumo[dia] || []).push(v);
+    save('tn-consumo', consumo);
+    $('#c-gramas').value = '';
+    aviso('#c-aviso', 'Alimento adicionado.');
+    desenharConsumo();
+  });
+
+  /* ---------- alimentos ---------- */
+  function desenharAlimentos() {
+    var tb = $('#a-tabela'); limpar(tb);
+    alimentos.forEach(function (a, idx) {
+      var tr = el('tr');
+      tr.appendChild(el('td', a.nome));
+      [a.kcal, a.c, a.p, a.g, a.f].forEach(function (v) { tr.appendChild(el('td', fmt(v))); });
+      var td = el('td');
+      var b = el('button', 'Excluir', 'botao perigo mini');
+      b.addEventListener('click', function () {
+        alimentos.splice(idx, 1); save('tn-alimentos', alimentos);
+        desenharAlimentos(); preencherConsumo();
+      });
+      td.appendChild(b); tr.appendChild(td); tb.appendChild(tr);
+    });
+  }
+
+  $('#a-salvar').addEventListener('click', function () {
+    var nome = $('#a-nome').value.trim();
+    if (!nome) { aviso('#a-aviso', 'Informe o nome do alimento.', true); return; }
+    alimentos.push({
+      id: nid(), nome: nome,
+      kcal: num($('#a-kcal').value), c: num($('#a-c').value), p: num($('#a-p').value),
+      g: num($('#a-g').value), f: num($('#a-f').value)
+    });
+    alimentos.sort(function (x, y) { return x.nome.localeCompare(y.nome, 'pt-BR'); });
+    save('tn-alimentos', alimentos);
+    ['#a-nome', '#a-kcal', '#a-c', '#a-p', '#a-g', '#a-f'].forEach(function (s) { $(s).value = ''; });
+    aviso('#a-aviso', 'Alimento salvo.');
+    desenharAlimentos(); preencherConsumo();
+  });
+
+  /* ---------- receitas ---------- */
+  function areas(qual) {
+    $('#r-lista-area').className = qual === 'lista' ? '' : 'oculto';
+    $('#r-ver-area').className = qual === 'ver' ? '' : 'oculto';
+    $('#r-form-area').className = qual === 'form' ? '' : 'oculto';
+  }
+
+  function mostrarListaReceitas() {
+    areas('lista');
+    preencherConsumo();
+    var ul = $('#r-lista'); limpar(ul);
+    if (!receitas.length) { ul.appendChild(el('li', 'Nenhuma receita cadastrada ainda.', 'vazio')); return; }
+    receitas.forEach(function (r) {
+      var li = el('li');
+      var info = el('span');
+      info.appendChild(selos(r));
+      info.appendChild(document.createTextNode(r.nome + ' • ' + r.porcoes + (r.porcoes === 1 ? ' porção' : ' porções')));
+      li.appendChild(info);
+      var b = el('button', 'Abrir', 'botao sec mini');
+      b.addEventListener('click', function () { abrirReceita(r.id); });
+      li.appendChild(b); ul.appendChild(li);
+    });
+  }
+
+  function totalReceita(r) {
+    return somar(r.ingredientes.map(function (i) { return porGramas(i.per100, i.gramas); }));
+  }
+
+  function ingredientesDaPorcao(r, qtd) {
+    return r.ingredientes.map(function (i) {
+      var gr = i.gramas / r.porcoes * qtd;
+      var n = porGramas(i.per100, gr);
+      n.nome = i.nome; n.gramas = gr;
+      return n;
+    });
+  }
+
+  function abrirReceita(id) {
+    var r = receitas.filter(function (x) { return x.id === id; })[0];
+    if (!r) return;
+    receitaAberta = r;
+    areas('ver');
+    $('#v-nome').textContent = r.nome;
+    var vp = $('#v-porcoes'); limpar(vp);
+    vp.appendChild(selos(r));
+    vp.appendChild(document.createTextNode('Rende ' + r.porcoes + (r.porcoes === 1 ? ' porção.' : ' porções.')));
+    $('#v-vis').textContent = r.vis === 'publica' ? 'Tornar privada' : 'Tornar pública';
+    var ul = $('#v-ingredientes'); limpar(ul);
+    r.ingredientes.forEach(function (i) { ul.appendChild(el('li', i.nome + ' — ' + fmt(i.gramas) + ' g')); });
+    $('#v-modo').textContent = r.modo || 'Sem modo de preparo informado.';
+    var tot = totalReceita(r), porcao = {};
+    Object.keys(tot).forEach(function (k) { porcao[k] = tot[k] / r.porcoes; });
+    var area = $('#v-rotulo'); limpar(area);
+    area.appendChild(rotulo(porcao, 'Informação nutricional', 'Valores por porção (1 de ' + r.porcoes + ')'));
+    $('#v-aviso').textContent = '';
+  }
+
+  $('#v-voltar').addEventListener('click', mostrarListaReceitas);
+
+  $('#v-consumir').addEventListener('click', function () {
+    var r = receitaAberta; if (!r) return;
+    var tot = totalReceita(r), v = {};
+    Object.keys(tot).forEach(function (k) { v[k] = tot[k] / r.porcoes; });
+    v.nome = r.nome; v.desc = '1 porção';
+    v.ingredientes = ingredientesDaPorcao(r, 1);
+    var dia = $('#data').value || hoje();
+    (consumo[dia] = consumo[dia] || []).push(v);
+    save('tn-consumo', consumo);
+    desenharConsumo();
+    aviso('#v-aviso', 'Porção adicionada ao consumo de hoje. Veja na guia Consumo.');
+  });
+
+  $('#v-excluir').addEventListener('click', function () {
+    if (!receitaAberta) return;
+    if (!confirm('Excluir a receita "' + receitaAberta.nome + '"?')) return;
+    receitas = receitas.filter(function (x) { return x.id !== receitaAberta.id; });
+    save('tn-receitas', receitas); registrarMudanca(); receitaAberta = null; mostrarListaReceitas();
+  });
+
+  function novaLinhaIngrediente() {
+    var linha = el('div', undefined, 'ingrediente');
+    var sel = el('select'); preencherSelect(sel);
+    var g = el('input'); g.type = 'text'; g.placeholder = 'g'; g.setAttribute('inputmode', 'decimal');
+    g.setAttribute('aria-label', 'Quantidade em gramas');
+    sel.setAttribute('aria-label', 'Ingrediente');
+    var x = el('button', 'Remover', 'botao perigo mini');
+    x.addEventListener('click', function () { linha.parentNode.removeChild(linha); });
+    linha.appendChild(sel); linha.appendChild(g); linha.appendChild(x);
+    $('#n-ingredientes').appendChild(linha);
+  }
+
+  $('#r-nova').addEventListener('click', function () {
+    areas('form');
+    $('#n-nome').value = ''; $('#n-porcoes').value = '1'; $('#n-modo').value = '';
+    limpar($('#n-ingredientes')); novaLinhaIngrediente();
+    document.querySelector('input[name="n-vis"][value="privada"]').checked = true;
+    $('#n-aviso').textContent = '';
+  });
+  $('#n-add-ing').addEventListener('click', novaLinhaIngrediente);
+  $('#n-cancelar').addEventListener('click', mostrarListaReceitas);
+
+  $('#n-salvar').addEventListener('click', function () {
+    var nome = $('#n-nome').value.trim();
+    var porcoes = Math.max(1, Math.round(num($('#n-porcoes').value)) || 1);
+    if (!nome) { aviso('#n-aviso', 'Informe o nome da receita.', true); return; }
+    var ings = [];
+    document.querySelectorAll('#n-ingredientes .ingrediente').forEach(function (linha) {
+      var id = linha.querySelector('select').value;
+      var g = num(linha.querySelector('input').value);
+      var a = alimentos.filter(function (x) { return x.id === id; })[0];
+      if (a && g > 0) ings.push({
+        nome: a.nome, gramas: g,
+        per100: { kcal: a.kcal, c: a.c, p: a.p, g: a.g, f: a.f }
+      });
+    });
+    if (!ings.length) { aviso('#n-aviso', 'Adicione pelo menos um ingrediente com a quantidade em gramas.', true); return; }
+    var vis = document.querySelector('input[name="n-vis"]:checked').value;
+    receitas.push({ id: nid(), nome: nome, porcoes: porcoes, ingredientes: ings, modo: $('#n-modo').value.trim(),
+      vis: vis, origem: null });
+    save('tn-receitas', receitas);
+    registrarMudanca();
+    mostrarListaReceitas();
+    aviso('#g-aviso', vis === 'publica' ? 'Receita salva e publicada.' : 'Receita salva como privada.');
+  });
+
+  /* ---------- modo em rede (simulado) ---------- */
+  function selos(r) {
+    var f = document.createDocumentFragment();
+    f.appendChild(el('span', r.vis === 'publica' ? 'Pública' : 'Privada', 'selo' + (r.vis === 'publica' ? ' pub' : '')));
+    if (r.origem) f.appendChild(el('span', 'Importada de ' + r.origem, 'selo imp'));
+    return f;
+  }
+  function jaImportada(id) {
+    return receitas.some(function (r) { return r.origemId === id; });
+  }
+  function registrarMudanca() {
+    if (!online) { pendentes++; save('tn-pendentes', pendentes); }
+    desenharEstado();
+  }
+  function desenharEstado() {
+    var b = $('#estado');
+    if (online) {
+      b.textContent = '● Online · sincronizado'; b.className = 'botao sec mini';
+    } else {
+      b.textContent = pendentes > 0 ? '○ Offline · ' + pendentes + ' alteração(ões) a sincronizar' : '○ Offline';
+      b.className = 'botao perigo mini';
+    }
+  }
+  $('#estado').addEventListener('click', function () {
+    online = !online;
+    if (online && pendentes > 0) {
+      aviso('#g-aviso', pendentes + ' alteração(ões) sincronizada(s).');
+      pendentes = 0; save('tn-pendentes', 0);
+    } else {
+      aviso('#g-aviso', online ? 'Conexão restabelecida.' : 'Sem conexão. Suas receitas continuam disponíveis neste dispositivo.');
+    }
+    desenharEstado();
+    if (!$('#explorar').hidden) mostrarExplorar();
+  });
+
+  function mostrarExplorar() {
+    $('#e-lista-area').className = '';
+    $('#e-ver-area').className = 'oculto';
+    var ul = $('#e-lista'); limpar(ul);
+    $('#e-busca').disabled = !online;
+    if (!online) {
+      ul.appendChild(el('li', 'Sem conexão. Conecte-se para ver as receitas de outras pessoas. As receitas que você já importou continuam em Minhas receitas.', 'vazio'));
+      return;
+    }
+    var q = $('#e-busca').value.trim().toLowerCase();
+    var lista = SERVIDOR.filter(function (r) {
+      return !q || r.nome.toLowerCase().indexOf(q) > -1 || r.autor.toLowerCase().indexOf(q) > -1;
+    });
+    if (!lista.length) { ul.appendChild(el('li', 'Nenhuma receita encontrada.', 'vazio')); return; }
+    lista.forEach(function (r) {
+      var li = el('li'), info = el('div'), tot = totalReceita(r);
+      info.appendChild(el('strong', r.nome));
+      info.appendChild(el('div', 'por ' + r.autor + ' • ' + fmt(tot.kcal / r.porcoes) + ' kcal por porção', 'detalhe'));
+      var b = el('button', jaImportada(r.id) ? 'Já importada' : 'Abrir', 'botao sec mini');
+      b.addEventListener('click', function () { abrirExplorada(r.id); });
+      li.appendChild(info); li.appendChild(b); ul.appendChild(li);
+    });
+  }
+  $('#e-busca').addEventListener('input', mostrarExplorar);
+  $('#e-voltar').addEventListener('click', mostrarExplorar);
+
+  function abrirExplorada(id) {
+    var r = SERVIDOR.filter(function (x) { return x.id === id; })[0];
+    if (!r) return;
+    explorada = r;
+    $('#e-lista-area').className = 'oculto';
+    $('#e-ver-area').className = '';
+    $('#e-nome').textContent = r.nome;
+    $('#e-info').textContent = 'por ' + r.autor + ' • rende ' + r.porcoes + (r.porcoes === 1 ? ' porção.' : ' porções.');
+    var ul = $('#e-ingredientes'); limpar(ul);
+    r.ingredientes.forEach(function (i) { ul.appendChild(el('li', i.nome + ' — ' + fmt(i.gramas) + ' g')); });
+    $('#e-modo').textContent = r.modo || 'Sem modo de preparo informado.';
+    var tot = totalReceita(r), porcao = {};
+    Object.keys(tot).forEach(function (k) { porcao[k] = tot[k] / r.porcoes; });
+    var area = $('#e-rotulo'); limpar(area);
+    area.appendChild(rotulo(porcao, 'Informação nutricional', 'Valores por porção (1 de ' + r.porcoes + ')'));
+    var ja = jaImportada(r.id), b = $('#e-importar');
+    b.disabled = ja;
+    b.textContent = ja ? 'Já importada' : 'Importar para minhas receitas';
+    $('#e-aviso').textContent = '';
+  }
+
+  $('#e-importar').addEventListener('click', function () {
+    var r = explorada;
+    if (!r || jaImportada(r.id)) return;
+    if (!online) { aviso('#e-aviso', 'Sem conexão. Volte a ficar online para importar.', true); return; }
+    var novos = 0;
+    r.ingredientes.forEach(function (i) {
+      var existe = alimentos.some(function (a) { return a.nome.toLowerCase() === i.nome.toLowerCase(); });
+      if (!existe) {
+        alimentos.push({ id: nid(), nome: i.nome, kcal: i.per100.kcal, c: i.per100.c, p: i.per100.p, g: i.per100.g, f: i.per100.f });
+        novos++;
+      }
+    });
+    if (novos) {
+      alimentos.sort(function (x, y) { return x.nome.localeCompare(y.nome, 'pt-BR'); });
+      save('tn-alimentos', alimentos); desenharAlimentos();
+    }
+    receitas.push({
+      id: nid(), nome: r.nome, porcoes: r.porcoes, modo: r.modo,
+      ingredientes: JSON.parse(JSON.stringify(r.ingredientes)),
+      vis: 'privada', origem: r.autor, origemId: r.id
+    });
+    save('tn-receitas', receitas);
+    registrarMudanca();
+    preencherConsumo();
+    abrirExplorada(r.id);
+    aviso('#e-aviso', 'Receita importada como privada. Ela já está em Minhas receitas.' +
+      (novos ? ' ' + novos + ' alimento(s) novo(s) adicionado(s) em Alimentos.' : ''));
+  });
+
+  $('#v-vis').addEventListener('click', function () {
+    var r = receitaAberta; if (!r) return;
+    r.vis = r.vis === 'publica' ? 'privada' : 'publica';
+    save('tn-receitas', receitas);
+    registrarMudanca();
+    abrirReceita(r.id);
+    aviso('#v-aviso', r.vis === 'publica' ? 'Receita pública: outras pessoas já podem importar.' : 'Receita privada: só você vê.');
+  });
+
+  /* ---------- login ---------- */
+  function iniciar() {
+    var logado = !!usuario;
+    $('#ferramentas').hidden = !logado;
+    $('#abas').hidden = !logado;
+    if (logado) {
+      $('#usuario').textContent = usuario.nome;
+      desenharEstado();
+      mostrar('consumo');
+    } else {
+      mostrar('login');
+    }
+  }
+  function entrar() {
+    var email = $('#l-email').value.trim();
+    if (email.indexOf('@') < 1 || !$('#l-senha').value) {
+      aviso('#l-aviso', 'Informe um e-mail válido e a senha.', true); return;
+    }
+    usuario = { email: email, nome: '@' + email.split('@')[0] };
+    save('tn-usuario', usuario);
+    $('#l-senha').value = '';
+    iniciar();
+  }
+  $('#l-entrar').addEventListener('click', entrar);
+  $('#l-criar').addEventListener('click', entrar);
+  $('#l-senha').addEventListener('keydown', function (e) { if (e.key === 'Enter') entrar(); });
+  $('#sair').addEventListener('click', function () {
+    usuario = null; save('tn-usuario', null); iniciar();
+  });
+
+  /* ---------- início ---------- */
+  preencherConsumo();
+  desenharAlimentos();
+  desenharConsumo();
+  iniciar();
+})();
+</script>
+</body>
+</html>
