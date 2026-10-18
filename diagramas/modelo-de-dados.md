@@ -1,3 +1,5 @@
+# Modelo de dados
+
 ```mermaid
 erDiagram
     USUARIO ||--o{ RECEITA : cria
