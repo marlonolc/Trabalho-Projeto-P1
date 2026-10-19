@@ -141,129 +141,20 @@ As telas são capturas do protótipo em HTML. Todas têm **1080 × 2400 px** (pr
 
 ## 📊 5. Diagramas
 
-### Casos de uso
+- ### [Casos de uso](./diagramas/casos-de-uso.md)
+  
+- ### [Sequência: importar uma receita](./diagramas/sequencia.md)
 
-```mermaid
-flowchart LR
-    U(["👤 Usuário"])
-    O(["👥 Outro usuário"])
-    subgraph TN["TabNutri"]
-        UC1("Entrar na conta")
-        UC2("Cadastrar alimento")
-        UC3("Registrar consumo")
-        UC4("Criar receita")
-        UC5("Escolher privacidade")
-        UC6("Explorar receitas")
-        UC7("Importar receita")
-        UC8("Usar offline e sincronizar")
-    end
-    U --- UC1
-    U --- UC2
-    U --- UC3
-    U --- UC4
-    U --- UC5
-    U --- UC6
-    U --- UC7
-    U --- UC8
-    O -. "compartilha" .- UC5
-    UC7 -. "inclui" .-> UC6
-```
-
-### Sequência: importar uma receita
-
-```mermaid
-sequenceDiagram
-    actor U as Usuário
-    participant App as App Android
-    participant API as API Node.js
-    participant BD as PostgreSQL
-
-    U->>App: toca em Importar
-    App->>API: POST /receitas/{id}/importar (JWT)
-    API->>BD: confere se a receita é pública
-    alt pública
-        API->>BD: grava a cópia como privada
-        API->>BD: adiciona alimentos que faltam
-        API-->>App: 201 receita copiada
-        App->>App: salva no SQLite do celular
-        App-->>U: "Receita importada"
-    else privada ou excluída
-        API-->>App: 404
-        App-->>U: avisa que não está mais disponível
-    end
-```
-
-### Arquitetura
-
-```mermaid
-flowchart LR
-    subgraph DISP["Celular Android"]
-        APP["App React Native"]
-        LOC[("SQLite local")]
-        APP <--> LOC
-    end
-    subgraph NUVEM["Nuvem AWS"]
-        API["API Node.js"]
-        BD[("PostgreSQL")]
-        S3[("S3: fotos")]
-        API --> BD
-        API --> S3
-    end
-    APP -- "HTTPS + JWT" --> API
-```
-
-### Modelo de dados
-
-```mermaid
-erDiagram
-    USUARIO ||--o{ RECEITA : cria
-    USUARIO ||--o{ CONSUMO : registra
-    RECEITA ||--|{ INGREDIENTE : possui
-    ALIMENTO ||--o{ INGREDIENTE : "entra em"
-    ALIMENTO ||--o{ CONSUMO : "é consumido em"
-    RECEITA |o--o{ RECEITA : "é importada de"
-
-    USUARIO {
-        int id PK
-        string nome
-        string email
-    }
-    ALIMENTO {
-        int id PK
-        string nome
-        decimal kcal "por 100 g"
-        decimal carboidratos_g
-        decimal proteinas_g
-        decimal gorduras_g
-        decimal fibras_g
-    }
-    RECEITA {
-        int id PK
-        int usuario_id FK
-        int origem_id FK
-        string nome
-        int porcoes
-        string visibilidade "privada ou publica"
-    }
-    INGREDIENTE {
-        int receita_id FK
-        int alimento_id FK
-        decimal gramas
-    }
-    CONSUMO {
-        int id PK
-        int usuario_id FK
-        date dia
-        decimal quantidade
-    }
-```
+- ### [Arquitetura](./diagramas/arquitetura.md)
+  
+- ### [Modelo de dados](./diagramas/modelo-de-dados.md)
 
 ---
 
 ## ▶️ Como abrir o protótipo
 
 1. Baixe o repositório (**Code → Download ZIP**) e extraia os arquivos.
-2. Abra `prototipo/tabnutri.html` no navegador. No computador, estreite a janela para ver o layout de celular.
+2. Abra `prototipo/tabnutri.html` no navegador.
 3. Entre com qualquer e-mail e senha.
 
 ## 👥 Equipe
@@ -274,4 +165,4 @@ erDiagram
 
 ## 📄 Licença
 
-Projeto acadêmico desenvolvido para a disciplina de Engenharia de Software 1 (Fatec).
+Projeto acadêmico desenvolvido para a disciplina de Engenharia de Software I (Fatec São Carlos).
